@@ -24,7 +24,7 @@ class GPSDeniedPublisher(Node):
     def timer_callback(self):
         msg = Bool()
         
-        if self.mode >= 1:
+        if self.mode == 1:
             msg.data = False
         else:
             current_time = time.time() - self.start_time
