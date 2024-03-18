@@ -6,11 +6,16 @@ import time
 import argparse
 
 class GPSDeniedPublisher(Node):
-    def __init__(self, mode):
+    def __init__(self):
         super().__init__('gps_denied_publisher')
         self.publisher_ = self.create_publisher(Bool, '/gps_is_denied', 1)
         self.timer_ = self.create_timer(0.05, self.timer_callback)  # 20 Hz
-        self.mode = mode
+        self.logger = self.get_logger()
+
+        self.declare_parameter('run_mode', 0)  # Declare the 'mode' parameter with a default value of 1
+        self.mode = self.get_parameter('run_mode').value  # Get the value of the 'mode' parameter; 
+        # 0 = random gps dropouts; 1+ = never denied
+        self.logger.info("gps denied pub is using mode {}".format(self.mode))
         self.start_time = time.time()
         self.callback_count = 0
         self.denial_start_time = None
@@ -19,7 +24,7 @@ class GPSDeniedPublisher(Node):
     def timer_callback(self):
         msg = Bool()
         
-        if self.mode == 1:
+        if self.mode >= 1:
             msg.data = False
         else:
             current_time = time.time() - self.start_time
@@ -30,7 +35,7 @@ class GPSDeniedPublisher(Node):
                     if random.random() < 0.5:  # 50% chance of creating a denied zone
                         self.denial_start_time = current_time
                         self.denial_duration = random.randint(2, 5)
-                        print("Starting gps denied zone from {0:.2f} for length {1:.2f}s".format(self.denial_start_time, self.denial_duration))
+                        self.logger.info("Starting gps denied zone from {0:.2f} for length {1:.2f}s".format(self.denial_start_time, self.denial_duration))
             
             if self.denial_start_time is not None:
                 if current_time - self.denial_start_time <= self.denial_duration:
@@ -39,7 +44,7 @@ class GPSDeniedPublisher(Node):
                     msg.data = False    # finished denied zone
                     self.denial_start_time = None
                     self.denial_duration = None
-                    print("Finished gps denied zone at {0:.2f}".format(current_time))
+                    self.logger.info("Finished gps denied zone at {0:.2f}".format(current_time))
             else:
                 msg.data = False
         
@@ -47,18 +52,13 @@ class GPSDeniedPublisher(Node):
 
 def main(args=None):
     rclpy.init(args=args)
+    # parser = argparse.ArgumentParser(description='GPS Denied Publisher')
+    # parser.add_argument('--mode', '-m', type=int, default=1, help='Select mode: 1 for never denied, 2 for randomly denied')
+    # args = parser.parse_args()
     
-    parser = argparse.ArgumentParser(description='GPS Denied Publisher')
-    parser.add_argument('--mode', '-m', type=int, default=1, help='Select mode: 1 for never denied, 2 for randomly denied')
-    args = parser.parse_args()
-    
-    mode = args.mode
-    
-    if mode not in [1, 2]:
-        print("Invalid mode selected. Defaulting to mode 1.")
-        mode = 1
-    
-    gps_denied_publisher = GPSDeniedPublisher(mode)
+    # mode = args.mode
+
+    gps_denied_publisher = GPSDeniedPublisher()
     rclpy.spin(gps_denied_publisher)
     gps_denied_publisher.destroy_node()
     rclpy.shutdown()
