@@ -22,7 +22,7 @@ class GPSDeniedPublisher(Node):
         if self.mode == 1:
             msg.data = False
         else:
-            current_time = time.time()
+            current_time = time.time() - self.start_time
             self.callback_count += 1
             
             if self.callback_count % 200 == 0:  # Check every 10 seconds (200 callbacks)
@@ -30,6 +30,7 @@ class GPSDeniedPublisher(Node):
                     if random.random() < 0.5:  # 50% chance of creating a denied zone
                         self.denial_start_time = current_time
                         self.denial_duration = random.randint(2, 5)
+                        print("Starting gps denied zone from {0:.2f} for length {1:.2f}s".format(self.denial_start_time, self.denial_duration))
             
             if self.denial_start_time is not None:
                 if current_time - self.denial_start_time <= self.denial_duration:
@@ -38,6 +39,7 @@ class GPSDeniedPublisher(Node):
                     msg.data = False    # finished denied zone
                     self.denial_start_time = None
                     self.denial_duration = None
+                    print("Finished gps denied zone at {0:.2f}".format(current_time))
             else:
                 msg.data = False
         
@@ -47,7 +49,7 @@ def main(args=None):
     rclpy.init(args=args)
     
     parser = argparse.ArgumentParser(description='GPS Denied Publisher')
-    parser.add_argument('--mode', type=int, default=1, help='Select mode: 1 for never denied, 2 for randomly denied')
+    parser.add_argument('--mode', '-m', type=int, default=1, help='Select mode: 1 for never denied, 2 for randomly denied')
     args = parser.parse_args()
     
     mode = args.mode
