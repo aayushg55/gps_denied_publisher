@@ -4,12 +4,14 @@ from std_msgs.msg import Bool
 import random
 import time
 import argparse
+from rclpy.clock import Clock
 
 class GPSDeniedPublisher(Node):
     def __init__(self):
         super().__init__('gps_denied_publisher')
         self.publisher_ = self.create_publisher(Bool, '/gps_is_denied', 1)
-        self.timer_ = self.create_timer(0.05, self.timer_callback)  # 20 Hz
+        clock = Clock(clock_type=rclpy.clock.ClockType.ROS_TIME)
+        self.timer_ = self.create_timer(0.05, self.timer_callback, clock=clock)  # 20 Hz
         self.logger = self.get_logger()
 
         self.declare_parameter('run_mode', 0)  # Declare the 'mode' parameter with a default value of 1
